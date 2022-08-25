@@ -52,3 +52,6 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# Project specific editor files
+.vimrc
+.vscode/
