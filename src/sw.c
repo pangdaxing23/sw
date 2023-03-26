@@ -165,6 +165,7 @@ void cleanup() {
     save_time();
   }
 }
+
 void sigint_handler(int sig)
 {
   signal(sig, sigint_handler);
@@ -197,6 +198,9 @@ void* input_thread(void* arg)
             ++starttime.tv_sec;
           }
         }
+        break;
+      case 's':
+        save_time();
         break;
       case 'q':
         // quit
