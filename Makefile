@@ -1,22 +1,38 @@
 CC := gcc
+CFLAGS := -Wall -Wextra -Werror
+TARGET := sw
 BIN := ./bin
 SRC := ./src
+
+DEBUG_FLAGS := -g -O0
+RELEASE_FLAGS := -O3
+
+BUILD ?= release
+ifeq ($(BUILD),debug)
+    CFLAGS += $(DEBUG_FLAGS)
+else
+    CFLAGS += $(RELEASE_FLAGS)
+endif
+
+BIN := ./bin/$(BUILD)
+
 ifeq ($(PREFIX),)
 	PREFIX := /usr/local
 endif
 
-$(BIN)/sw: $(SRC)/sw.c
+$(BIN)/$(TARGET): $(SRC)/$(TARGET).c
 	mkdir -p $(BIN)
-	$(CC) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
-install: $(BIN)/sw
+install: $(BIN)/$(TARGET)
 	install -d $(PREFIX)/bin
-	install $(BIN)/sw $(PREFIX)/bin
+	install $(BIN)/$(TARGET) $(PREFIX)/bin
 
-uninstall: $(PREFIX)/bin/sw
-	rm -f $(PREFIX)/bin/sw
+uninstall: $(PREFIX)/bin/$(TARGET)
+	rm -f $(PREFIX)/bin/$(TARGET)
 
 clean:
-	rm -rf $(BIN)
+	rm -rf ./bin
 
-.PHONY: clean install uninstall
+.PHONY: install uninstall clean
+

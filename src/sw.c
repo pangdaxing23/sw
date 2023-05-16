@@ -48,18 +48,18 @@ void set_canonical_mode(int enable)
 
 void print_time(FILE *fd)
 {
-  if (elapsedtime.tv_sec >= 3600)
+  if (elapsedtime.tv_sec < 3600)
   {
-    fprintf(fd, OVER_HOUR_TEMPLATE,
-        (int)(elapsedtime.tv_sec / 3600),
-        (int)(elapsedtime.tv_sec % 3600 / 60),
+    fprintf(fd, UNDER_HOUR_TEMPLATE,
+        (int)(elapsedtime.tv_sec / 60),
         (int)(elapsedtime.tv_sec % 60),
         (int)(elapsedtime.tv_nsec / 10000000));
   }
   else
   {
-    fprintf(fd, UNDER_HOUR_TEMPLATE,
-        (int)(elapsedtime.tv_sec / 60),
+    fprintf(fd, OVER_HOUR_TEMPLATE,
+        (int)(elapsedtime.tv_sec / 3600),
+        (int)(elapsedtime.tv_sec % 3600 / 60),
         (int)(elapsedtime.tv_sec % 60),
         (int)(elapsedtime.tv_nsec / 10000000));
   }
@@ -80,7 +80,9 @@ FILE *get_saved_time_file(char *mode)
   char *homedirectory = getenv("HOME");
   if (homedirectory != NULL)
   {
-    strcat(strncpy(file, getenv("HOME"), 256), "/.sw");
+    strncpy(file, getenv("HOME"), 255);
+    file[255] = '\0';
+    strcat(file, "/.sw");
     struct stat sb;
     if (stat(file, &sb) == 0 && S_ISDIR(sb.st_mode))
     {
@@ -114,7 +116,6 @@ void restore_time()
   int minutes = 0;
   int seconds = 0;
   int centiseconds = 0;
-  long nanoseconds = 0;
 
   FILE *savedtimef = get_saved_time_file("r");
 
@@ -151,6 +152,7 @@ void restore_time()
     restored_time.tv_sec = (hours * 60 * 60) + (minutes * 60) + seconds;
     restored_time.tv_nsec = (centiseconds * 10000000);
   }
+  free(buf);
 }
 
 void reset_time()
@@ -185,7 +187,7 @@ void sigint_handler(int sig)
   exit(sig);
 }
 
-void* input_thread(void* arg)
+void* input_thread()
 {
   char c;
   set_canonical_mode(0);
@@ -231,6 +233,7 @@ void* input_thread(void* arg)
       default:
         break;
     }
+    nanosleep(&sleepduration, NULL);
   }
   return NULL;
 }
@@ -292,6 +295,7 @@ int main(int argc, char *argv[])
       print_time(stdout);
       nanosleep(&sleepduration, NULL);
     }
+    nanosleep(&sleepduration, NULL);
   }
   return 0;
 }
