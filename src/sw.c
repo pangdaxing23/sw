@@ -33,6 +33,8 @@ char endchar = '\r';
 int rflag = 0;
 int sflag = 0;
 
+static char *program_name;
+
 void set_canonical_mode(int enable)
 {
   struct termios term_settings;
@@ -152,6 +154,13 @@ void restore_time()
     restored_time.tv_sec = (hours * 60 * 60) + (minutes * 60) + seconds;
     restored_time.tv_nsec = (centiseconds * 10000000);
   }
+  starttime.tv_sec -= restored_time.tv_sec;
+  starttime.tv_nsec -= restored_time.tv_nsec;
+  if (starttime.tv_nsec < 0)
+  {
+    starttime.tv_nsec += 1000000000;
+    --starttime.tv_sec;
+  }
   free(buf);
 }
 
@@ -238,26 +247,47 @@ void* input_thread()
   return NULL;
 }
 
+void print_help(FILE *out)
+{
+  fprintf(out, "Usage: %s [-hsr]\n", program_name);
+  fprintf(out, "\nOptions:\n");
+  fprintf(out, "  -h, --help    Show this help message and exit.\n");
+  fprintf(out, "  -s, --save    Save the final time to ~/.sw/savedtime\n");
+  fprintf(out, "  -r, --restore Restore time from ~/.sw/savedtime\n");
+}
+
+void print_short_help(FILE *out)
+{
+  fprintf(out, "Usage: %s [-hsr]\n", program_name);
+}
+
 int main(int argc, char *argv[])
 {
+  program_name = argv[0];
+
   static struct option long_options[] = {
+    {"help",    no_argument, 0, 'h'},
+    {"save",    no_argument, 0, 's'},
     {"restore", no_argument, 0, 'r'},
-    {"save",    no_argument, 0, 's'}
   };
 
   int opt;
   int option_index = 0;
-  while ((opt = getopt_long(argc, argv, "sr", long_options, &option_index)) != -1)
+  while ((opt = getopt_long(argc, argv, "hsr", long_options, &option_index)) != -1)
   {
     switch (opt)
     {
-      case 'r':
-        rflag = 1;
-        break;
+      case 'h':
+        print_help(stdout);
+        exit(0);
       case 's':
         sflag = 1;
         break;
+      case 'r':
+        rflag = 1;
+        break;
       case '?':
+        print_short_help(stderr);
         break;
       default:
         exit(1);
@@ -272,13 +302,6 @@ int main(int argc, char *argv[])
   if (rflag)
   {
     restore_time();
-    starttime.tv_sec -= restored_time.tv_sec;
-    starttime.tv_nsec -= restored_time.tv_nsec;
-    if (starttime.tv_nsec < 0)
-    {
-      starttime.tv_nsec += 1000000000;
-      --starttime.tv_sec;
-    }
   }
   while (1)
   {

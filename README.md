@@ -8,16 +8,20 @@ Precisely record times to the 1/100th of a second.
 
 ## Usage
 
-`sw`
+```
+./sw [-hsr]
+```
 
-`SPC` to pause/resume.
+### Options:
+- `-h, --help` : Show a help message and exit.
+- `-s, --save` : Save the final time to `~/.sw/savedtime` upon termination.
+- `-r, --restore` : Restore time from `~/.sw/savedtime` at the start.
 
-`r` to reset.
+### Controls:
 
-`s` to save.
+Once the program is running, you can use the following controls:
 
-`q` to quit.
-
-`sw -s` to save time to `~/.sw/savedtime`
-
-`sw -r` to restore time from `~/.sw/savedtime`
+- `space` : Pause or resume the stopwatch.
+- `s` : Save the current time to `~/.sw/savedtime`.
+- `r` : Reset the stopwatch to zero.
+- `q` : Quit.
