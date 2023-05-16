@@ -153,7 +153,20 @@ void restore_time()
   }
 }
 
-void cleanup() {
+void reset_time()
+{
+  clock_gettime(CLOCK_MONOTONIC, &starttime);
+  if (!timing)
+  {
+    clock_gettime(CLOCK_MONOTONIC, &pausedtime);
+    elapsedtime.tv_sec = 0;
+    elapsedtime.tv_nsec = 0;
+    print_time(stdout);
+  }
+}
+
+void cleanup()
+{
   timing = 0;
   endchar = '\n';
   clear_output();
@@ -168,7 +181,8 @@ void cleanup() {
 
 void sigint_handler(int sig)
 {
-  signal(sig, sigint_handler);
+  cleanup();
+  exit(sig);
 }
 
 void* input_thread(void* arg)
@@ -177,14 +191,17 @@ void* input_thread(void* arg)
   set_canonical_mode(0);
   while ((c = getchar()) != EOF)
   {
-    switch (c) {
+    switch (c)
+    {
       case ' ':
         // pause or resume stopwatch
         timing = !timing;
-        if (!timing) {
+        if (!timing)
+        {
           clock_gettime(CLOCK_MONOTONIC, &pausedtime);
         }
-        if (timing) {
+        else
+        {
           clock_gettime(CLOCK_MONOTONIC, &resumedtime);
           starttime.tv_sec += resumedtime.tv_sec - pausedtime.tv_sec;
           starttime.tv_nsec += resumedtime.tv_nsec - pausedtime.tv_nsec;
@@ -192,7 +209,8 @@ void* input_thread(void* arg)
           {
             starttime.tv_nsec += 1000000000;
             --starttime.tv_sec;
-          } else if (starttime.tv_nsec >= 1000000000)
+          }
+          else if (starttime.tv_nsec >= 1000000000)
           {
             starttime.tv_nsec -= 1000000000;
             ++starttime.tv_sec;
@@ -201,6 +219,9 @@ void* input_thread(void* arg)
         break;
       case 's':
         save_time();
+        break;
+      case 'r':
+        reset_time();
         break;
       case 'q':
         // quit
@@ -216,19 +237,19 @@ void* input_thread(void* arg)
 
 int main(int argc, char *argv[])
 {
-  int c;
   static struct option long_options[] = {
     {"restore", no_argument, 0, 'r'},
-    {"save", no_argument, 0, 's'}};
-  int option_index = 0;
+    {"save",    no_argument, 0, 's'}
+  };
 
-  while ((c = getopt_long(argc, argv, "sr", long_options, &option_index)) != -1)
+  int opt;
+  int option_index = 0;
+  while ((opt = getopt_long(argc, argv, "sr", long_options, &option_index)) != -1)
   {
-    switch (c)
+    switch (opt)
     {
       case 'r':
         rflag = 1;
-        restore_time();
         break;
       case 's':
         sflag = 1;
@@ -239,6 +260,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
   }
+
   signal(SIGINT, sigint_handler);
   pthread_t tid;
   pthread_create(&tid, NULL, input_thread, NULL);
@@ -246,6 +268,7 @@ int main(int argc, char *argv[])
   clock_gettime(CLOCK_MONOTONIC, &starttime);
   if (rflag)
   {
+    restore_time();
     starttime.tv_sec -= restored_time.tv_sec;
     starttime.tv_nsec -= restored_time.tv_nsec;
     if (starttime.tv_nsec < 0)
@@ -254,7 +277,8 @@ int main(int argc, char *argv[])
       --starttime.tv_sec;
     }
   }
-  while (1) {
+  while (1)
+  {
     while (timing)
     {
       clock_gettime(CLOCK_MONOTONIC, &currenttime);

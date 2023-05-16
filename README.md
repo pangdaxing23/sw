@@ -10,6 +10,10 @@
 
 `SPC` to pause/resume.
 
+`r` to reset.
+
+`s` to save.
+
 `q` to quit.
 
 `sw -s` to save time to `~/.sw/savedtime`
