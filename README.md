@@ -1,4 +1,6 @@
-# sw - a simple stopwatch
+# sw - a simple, precise stopwatch
+
+Precisely record times to the 1/100th of a second.
 
 ## Installation
 
