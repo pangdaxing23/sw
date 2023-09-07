@@ -17,7 +17,7 @@
 #define OVER_HOUR_TEMPLATE "%2d:%02d:%02d.%02d"
 #define UNDER_HOUR_TEMPLATE "%02d:%02d.%02d"
 
-volatile sig_atomic_t timing = 1;
+volatile sig_atomic_t paused = 0;
 
 const struct timespec sleepduration = {0, NSEC_TO_SLEEP};
 
@@ -32,6 +32,7 @@ char endchar = '\r';
 
 int rflag = 0;
 int sflag = 0;
+int xflag = 0;
 
 static char *program_name;
 
@@ -167,7 +168,7 @@ void restore_time()
 void reset_time()
 {
   clock_gettime(CLOCK_MONOTONIC, &starttime);
-  if (!timing)
+  if (paused)
   {
     clock_gettime(CLOCK_MONOTONIC, &pausedtime);
     elapsedtime.tv_sec = 0;
@@ -178,7 +179,7 @@ void reset_time()
 
 void cleanup()
 {
-  timing = 0;
+  paused = 1;
   endchar = '\n';
   clear_output();
   print_time(stdout);
@@ -206,10 +207,14 @@ void* input_thread()
     {
       case ' ':
         // pause or resume stopwatch
-        timing = !timing;
-        if (!timing)
+        paused = !paused;
+        if (paused)
         {
           clock_gettime(CLOCK_MONOTONIC, &pausedtime);
+          if (xflag) {
+            cleanup();
+            exit(0);
+          }
         }
         else
         {
@@ -254,11 +259,12 @@ void print_help(FILE *out)
   fprintf(out, "  -h, --help    Show this help message and exit.\n");
   fprintf(out, "  -s, --save    Save the final time to ~/.sw/savedtime\n");
   fprintf(out, "  -r, --restore Restore time from ~/.sw/savedtime\n");
+  fprintf(out, "  -x, --exit    Exit instead of pausing.\n");
 }
 
 void print_short_help(FILE *out)
 {
-  fprintf(out, "Usage: %s [-hsr]\n", program_name);
+  fprintf(out, "Usage: %s [-hsrq]\n", program_name);
 }
 
 int main(int argc, char *argv[])
@@ -269,11 +275,12 @@ int main(int argc, char *argv[])
     {"help",    no_argument, 0, 'h'},
     {"save",    no_argument, 0, 's'},
     {"restore", no_argument, 0, 'r'},
+    {"exit",    no_argument, 0, 'x'},
   };
 
   int opt;
   int option_index = 0;
-  while ((opt = getopt_long(argc, argv, "hsr", long_options, &option_index)) != -1)
+  while ((opt = getopt_long(argc, argv, "hsrx", long_options, &option_index)) != -1)
   {
     switch (opt)
     {
@@ -286,6 +293,9 @@ int main(int argc, char *argv[])
       case 'r':
         rflag = 1;
         break;
+      case 'x':
+        xflag = 1;
+        break;
       case '?':
         print_short_help(stderr);
         break;
@@ -295,6 +305,7 @@ int main(int argc, char *argv[])
   }
 
   signal(SIGINT, sigint_handler);
+  signal(SIGTERM, sigint_handler);
   pthread_t tid;
   pthread_create(&tid, NULL, input_thread, NULL);
   HIDE_CURSOR;
@@ -305,7 +316,7 @@ int main(int argc, char *argv[])
   }
   while (1)
   {
-    while (timing)
+    while (!paused)
     {
       clock_gettime(CLOCK_MONOTONIC, &currenttime);
       elapsedtime.tv_sec = currenttime.tv_sec - starttime.tv_sec;
