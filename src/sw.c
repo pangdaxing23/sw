@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <termios.h>
 #include <sys/stat.h>
+#include "sw.h"
 
 #define NSEC_TO_SLEEP 10000000
 #define HIDE_CURSOR printf("\e[?25l")
@@ -36,15 +37,15 @@ int xflag = 0;
 
 static char *program_name;
 
-void set_canonical_mode(int enable)
+void set_raw_mode(int enable)
 {
   struct termios term_settings;
   tcgetattr(STDIN_FILENO, &term_settings);
 
   if (enable)
-    term_settings.c_lflag |= ICANON | ECHO;
-  else
     term_settings.c_lflag &= ~(ICANON | ECHO);
+  else
+    term_settings.c_lflag |= ICANON | ECHO;
 
   tcsetattr(STDIN_FILENO, TCSANOW, &term_settings);
 }
@@ -68,6 +69,30 @@ void print_time(FILE *fd)
   }
   fprintf(fd, "%c", endchar);
   fflush(stdout);
+}
+
+void resume_timer() {
+  clock_gettime(CLOCK_MONOTONIC, &pausedtime);
+  if (xflag) {
+    cleanup();
+    exit(0);
+  }
+}
+
+void pause_timer() {
+  clock_gettime(CLOCK_MONOTONIC, &resumedtime);
+  starttime.tv_sec += resumedtime.tv_sec - pausedtime.tv_sec;
+  starttime.tv_nsec += resumedtime.tv_nsec - pausedtime.tv_nsec;
+  if (starttime.tv_nsec < 0)
+  {
+    starttime.tv_nsec += 1000000000;
+    --starttime.tv_sec;
+  }
+  else if (starttime.tv_nsec >= 1000000000)
+  {
+    starttime.tv_nsec -= 1000000000;
+    ++starttime.tv_sec;
+  }
 }
 
 void clear_output()
@@ -184,7 +209,7 @@ void cleanup()
   clear_output();
   print_time(stdout);
   SHOW_CURSOR;
-  set_canonical_mode(1);
+  set_raw_mode(0);
   if (sflag)
   {
     save_time();
@@ -200,7 +225,7 @@ void sigint_handler(int sig)
 void* input_thread()
 {
   char c;
-  set_canonical_mode(0);
+  set_raw_mode(1);
   while ((c = getchar()) != EOF)
   {
     switch (c)
@@ -210,27 +235,11 @@ void* input_thread()
         paused = !paused;
         if (paused)
         {
-          clock_gettime(CLOCK_MONOTONIC, &pausedtime);
-          if (xflag) {
-            cleanup();
-            exit(0);
-          }
+          resume_timer();
         }
         else
         {
-          clock_gettime(CLOCK_MONOTONIC, &resumedtime);
-          starttime.tv_sec += resumedtime.tv_sec - pausedtime.tv_sec;
-          starttime.tv_nsec += resumedtime.tv_nsec - pausedtime.tv_nsec;
-          if (starttime.tv_nsec < 0)
-          {
-            starttime.tv_nsec += 1000000000;
-            --starttime.tv_sec;
-          }
-          else if (starttime.tv_nsec >= 1000000000)
-          {
-            starttime.tv_nsec -= 1000000000;
-            ++starttime.tv_sec;
-          }
+          pause_timer();
         }
         break;
       case 's':
