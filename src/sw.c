@@ -2,11 +2,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
-#include <pthread.h>
 #include <termios.h>
 #include <sys/stat.h>
 #include "sw.h"
@@ -18,7 +16,7 @@
 #define OVER_HOUR_TEMPLATE "%2d:%02d:%02d.%02d"
 #define UNDER_HOUR_TEMPLATE "%02d:%02d.%02d"
 
-volatile sig_atomic_t paused = 0;
+int paused = 0;
 
 const struct timespec sleepduration = {0, NSEC_TO_SLEEP};
 
@@ -222,43 +220,34 @@ void sigint_handler(int sig)
   exit(sig);
 }
 
-void* input_thread()
+void get_input()
 {
   char c;
-  set_raw_mode(1);
-  while ((c = getchar()) != EOF)
+  read(STDIN_FILENO, &c, 1);
+  switch (c)
   {
-    switch (c)
-    {
-      case ' ':
-        // pause or resume stopwatch
-        paused = !paused;
-        if (paused)
-        {
-          resume_timer();
-        }
-        else
-        {
-          pause_timer();
-        }
-        break;
-      case 's':
-        save_time();
-        break;
-      case 'r':
-        reset_time();
-        break;
-      case 'q':
-        // quit
-        cleanup();
-        exit(0);
-        break;
-      default:
-        break;
-    }
-    nanosleep(&sleepduration, NULL);
+    case ' ':
+      // pause or resume stopwatch
+      paused = !paused;
+      if (paused)
+        resume_timer();
+      else
+        pause_timer();
+      break;
+    case 's':
+      save_time();
+      break;
+    case 'r':
+      reset_time();
+      break;
+    case 'q':
+      // quit
+      cleanup();
+      exit(0);
+      break;
+    default:
+      break;
   }
-  return NULL;
 }
 
 void print_help(FILE *out)
@@ -278,6 +267,9 @@ void print_short_help(FILE *out)
 
 int main(int argc, char *argv[])
 {
+  signal(SIGINT, sigint_handler);
+  signal(SIGTERM, sigint_handler);
+
   program_name = argv[0];
 
   static struct option long_options[] = {
@@ -313,11 +305,12 @@ int main(int argc, char *argv[])
     }
   }
 
-  signal(SIGINT, sigint_handler);
-  signal(SIGTERM, sigint_handler);
-  pthread_t tid;
-  pthread_create(&tid, NULL, input_thread, NULL);
+  set_raw_mode(1);
   HIDE_CURSOR;
+
+  fd_set read_fds;
+  struct timeval timeout;
+
   clock_gettime(CLOCK_MONOTONIC, &starttime);
   if (rflag)
   {
@@ -325,7 +318,7 @@ int main(int argc, char *argv[])
   }
   while (1)
   {
-    while (!paused)
+    if (!paused)
     {
       clock_gettime(CLOCK_MONOTONIC, &currenttime);
       elapsedtime.tv_sec = currenttime.tv_sec - starttime.tv_sec;
@@ -336,8 +329,16 @@ int main(int argc, char *argv[])
         --elapsedtime.tv_sec;
       }
       print_time(stdout);
-      nanosleep(&sleepduration, NULL);
     }
+
+    FD_ZERO(&read_fds);
+    FD_SET(STDIN_FILENO, &read_fds);
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 1000; // Check every 1ms
+    if (select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout) == 1) {
+      get_input();
+    }
+
     nanosleep(&sleepduration, NULL);
   }
   return 0;
