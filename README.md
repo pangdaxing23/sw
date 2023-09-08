@@ -21,9 +21,11 @@ Precisely record times to the 1/100th of a second.
 
 ### Controls:
 
-Once the program is running, you can use the following controls:
+Once the stopwatch is running, you can use the following controls:
 
 - `space` : Pause or resume the stopwatch.
 - `s` : Save the current time to `~/.sw/savedtime`.
 - `r` : Reset the stopwatch to zero.
+- `+` : Add one second to the time.
+- `-` : Subtract one second from the time.
 - `q` : Quit.
