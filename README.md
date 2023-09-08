@@ -9,13 +9,15 @@ Precisely record times to the 1/100th of a second.
 ## Usage
 
 ```
-./sw [-hsr]
+./sw [-hsrxp]
 ```
 
 ### Options:
 - `-h, --help` : Show a help message and exit.
 - `-s, --save` : Save the final time to `~/.sw/savedtime` upon termination.
 - `-r, --restore` : Restore time from `~/.sw/savedtime` at the start.
+- `-x, --exit` : Exit instead of pausing.
+- `-p, --paused` : Start in paused state.
 
 ### Controls:
 
