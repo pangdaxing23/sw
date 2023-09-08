@@ -9,7 +9,7 @@ Precisely record times to the 1/100th of a second.
 ## Usage
 
 ```
-./sw [-hsrxp]
+./sw [-hsrxpa]
 ```
 
 ### Options:
@@ -18,6 +18,7 @@ Precisely record times to the 1/100th of a second.
 - `-r, --restore` : Restore time from `~/.sw/savedtime` at the start.
 - `-x, --exit` : Exit instead of pausing.
 - `-p, --paused` : Start in paused state.
+- `-a, --anykey` : Exit upon any keypress.
 
 ### Controls:
 

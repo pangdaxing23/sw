@@ -7,7 +7,7 @@
 * add quit at datetime option
 * add window title
 * show temporary message on saving and restoring from file
-* -a : anykey, for smashing keyboard
 * -k : spacebar keyUP starts timer (for mimicking rubiks cube mats)
 * ~~-p : start program paused~~
 * ~~add +/- seconds control~~
+* ~~-a : anykey, for smashing keyboard~~

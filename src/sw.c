@@ -319,6 +319,11 @@ void get_input()
   }
 }
 
+void print_short_help(FILE *out)
+{
+  fprintf(out, "Usage: %s [-hsrxpa]\n", program_name);
+}
+
 void print_help(FILE *out)
 {
   print_short_help(stdout);
@@ -337,11 +342,6 @@ void print_help(FILE *out)
   fprintf(out, "  -             Subtract one second from the time.\n");
   fprintf(out, "  r             Reset the stopwatch to zero.\n");
   fprintf(out, "  q             Quit.\n");
-}
-
-void print_short_help(FILE *out)
-{
-  fprintf(out, "Usage: %s [-hsrxpa]\n", program_name);
 }
 
 int main(int argc, char *argv[])
