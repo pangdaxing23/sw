@@ -9,5 +9,5 @@
 * add window title
 * show temporary message on saving and restoring from file
 * -a : anykey, for smashing keyboard
-* -p : start program paused
 * -k : start paused, spacebar keyUP starts timer (for mimicking rubiks cube mats)
+* ~~-p : start program paused~~
