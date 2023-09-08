@@ -26,7 +26,6 @@ struct timespec currenttime;
 struct timespec elapsedtime;
 struct timespec restored_time;
 struct timespec resumedtime;
-struct timespec pausedtime;
 
 char endchar = '\r';
 
@@ -42,10 +41,12 @@ void set_raw_mode(int enable)
   struct termios term_settings;
   tcgetattr(STDIN_FILENO, &term_settings);
 
-  if (enable)
+  if (enable) {
     term_settings.c_lflag &= ~(ICANON | ECHO);
-  else
-    term_settings.c_lflag |= ICANON | ECHO;
+  }
+  else {
+    system("stty sane");
+  }
 
   tcsetattr(STDIN_FILENO, TCSANOW, &term_settings);
 }
@@ -73,7 +74,7 @@ void print_time(FILE *fd)
 
 void pause_timer() {
   paused = 1;
-  clock_gettime(CLOCK_MONOTONIC, &pausedtime);
+  clock_gettime(CLOCK_MONOTONIC, &currenttime);
   if (xflag) {
     cleanup();
     exit(0);
@@ -83,8 +84,8 @@ void pause_timer() {
 void resume_timer() {
   paused = 0;
   clock_gettime(CLOCK_MONOTONIC, &resumedtime);
-  starttime.tv_sec += resumedtime.tv_sec - pausedtime.tv_sec;
-  starttime.tv_nsec += resumedtime.tv_nsec - pausedtime.tv_nsec;
+  starttime.tv_sec += resumedtime.tv_sec - currenttime.tv_sec;
+  starttime.tv_nsec += resumedtime.tv_nsec - currenttime.tv_nsec;
   if (starttime.tv_nsec < 0)
   {
     starttime.tv_nsec += ONE_BILLION_NSEC;
@@ -182,6 +183,8 @@ void restore_time()
     restored_time.tv_sec = (hours * 60 * 60) + (minutes * 60) + seconds;
     restored_time.tv_nsec = (centiseconds * 10000000);
   }
+  free(buf);
+
   starttime.tv_sec -= restored_time.tv_sec;
   starttime.tv_nsec -= restored_time.tv_nsec;
   if (starttime.tv_nsec < 0)
@@ -198,7 +201,39 @@ void restore_time()
     elapsedtime.tv_nsec += ONE_BILLION_NSEC;
     --elapsedtime.tv_sec;
   }
-  free(buf);
+}
+
+void add_one_second() {
+  starttime.tv_sec -= 1;
+  if (paused) {
+    elapsedtime.tv_sec = currenttime.tv_sec - starttime.tv_sec;
+    elapsedtime.tv_nsec = currenttime.tv_nsec - starttime.tv_nsec;
+    if (elapsedtime.tv_nsec < 0)
+    {
+      elapsedtime.tv_nsec += ONE_BILLION_NSEC;
+      --elapsedtime.tv_sec;
+    }
+    print_time(stdout);
+  }
+}
+
+void subtract_one_second() {
+  starttime.tv_sec += 1;
+  if (starttime.tv_sec > currenttime.tv_sec ||
+      (starttime.tv_sec == currenttime.tv_sec && starttime.tv_nsec > currenttime.tv_nsec)) {
+    starttime.tv_sec = currenttime.tv_sec;
+    starttime.tv_nsec = currenttime.tv_nsec;
+  }
+  if (paused) {
+    elapsedtime.tv_sec = currenttime.tv_sec - starttime.tv_sec;
+    elapsedtime.tv_nsec = currenttime.tv_nsec - starttime.tv_nsec;
+    if (elapsedtime.tv_nsec < 0)
+    {
+      elapsedtime.tv_nsec += ONE_BILLION_NSEC;
+      --elapsedtime.tv_sec;
+    }
+    print_time(stdout);
+  }
 }
 
 void reset_time()
@@ -206,7 +241,7 @@ void reset_time()
   clock_gettime(CLOCK_MONOTONIC, &starttime);
   if (paused)
   {
-    clock_gettime(CLOCK_MONOTONIC, &pausedtime);
+    clock_gettime(CLOCK_MONOTONIC, &currenttime);
     elapsedtime.tv_sec = 0;
     elapsedtime.tv_nsec = 0;
     print_time(stdout);
@@ -259,6 +294,12 @@ void get_input()
       case 'r':
         reset_time();
         break;
+      case '+':
+        add_one_second();
+        break;
+      case '-':
+        subtract_one_second();
+        break;
       case 'q':
         // quit
         cleanup();
@@ -283,6 +324,8 @@ void print_help(FILE *out)
   fprintf(out, "\nControls:\n");
   fprintf(out, "  Space         Pause or resume the stopwatch.\n");
   fprintf(out, "  s             Save the current time to ~/.sw/savedtime.\n");
+  fprintf(out, "  +             Add one second to the time.\n");
+  fprintf(out, "  -             Subtract one second from the time.\n");
   fprintf(out, "  r             Reset the stopwatch to zero.\n");
   fprintf(out, "  q             Quit.\n");
 }
