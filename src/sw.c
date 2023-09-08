@@ -9,8 +9,9 @@
 #include <sys/stat.h>
 #include "sw.h"
 
-#define NSEC_TO_SLEEP 10000000
+#define ONE_MILLION_NSEC 1000000
 #define ONE_BILLION_NSEC 1000000000
+#define NSEC_TO_SLEEP ONE_MILLION_NSEC
 #define HIDE_CURSOR printf("\e[?25l")
 #define SHOW_CURSOR printf("\e[?25h")
 
@@ -33,6 +34,7 @@ int rflag = 0;
 int sflag = 0;
 int xflag = 0;
 int pflag = 0;
+int aflag = 0;
 
 static char *program_name;
 
@@ -279,47 +281,54 @@ void get_input()
   if (select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout) == 1) {
     char c;
     read(STDIN_FILENO, &c, 1);
-    switch (c)
-    {
-      case ' ':
-        // pause or resume stopwatch
-        if (paused)
-          resume_timer();
-        else
-          pause_timer();
-        break;
-      case 's':
-        save_time();
-        break;
-      case 'r':
-        reset_time();
-        break;
-      case '+':
-        add_one_second();
-        break;
-      case '-':
-        subtract_one_second();
-        break;
-      case 'q':
-        // quit
-        cleanup();
-        exit(0);
-        break;
-      default:
-        break;
+    if (aflag) {
+      // exit upon any keypress
+      cleanup();
+      exit(0);
+    } else {
+      switch (c)
+      {
+        case ' ':
+          // pause or resume stopwatch
+          if (paused)
+            resume_timer();
+          else
+            pause_timer();
+          break;
+        case 's':
+          save_time();
+          break;
+        case 'r':
+          reset_time();
+          break;
+        case '+':
+          add_one_second();
+          break;
+        case '-':
+          subtract_one_second();
+          break;
+        case 'q':
+          // quit
+          cleanup();
+          exit(0);
+          break;
+        default:
+          break;
+      }
     }
   }
 }
 
 void print_help(FILE *out)
 {
-  fprintf(out, "Usage: %s [-hsrxp]\n", program_name);
+  print_short_help(stdout);
   fprintf(out, "\nOptions:\n");
   fprintf(out, "  -h, --help    Show this help message and exit.\n");
   fprintf(out, "  -s, --save    Save the final time to ~/.sw/savedtime\n");
   fprintf(out, "  -r, --restore Restore time from ~/.sw/savedtime\n");
   fprintf(out, "  -x, --exit    Exit instead of pausing.\n");
   fprintf(out, "  -p, --paused  Start in paused state.\n");
+  fprintf(out, "  -a, --anykey  Exit upon any keypress.\n");
 
   fprintf(out, "\nControls:\n");
   fprintf(out, "  Space         Pause or resume the stopwatch.\n");
@@ -332,7 +341,7 @@ void print_help(FILE *out)
 
 void print_short_help(FILE *out)
 {
-  fprintf(out, "Usage: %s [-hsrxp]\n", program_name);
+  fprintf(out, "Usage: %s [-hsrxpa]\n", program_name);
 }
 
 int main(int argc, char *argv[])
@@ -348,11 +357,12 @@ int main(int argc, char *argv[])
     {"restore", no_argument, 0, 'r'},
     {"exit",    no_argument, 0, 'x'},
     {"paused",  no_argument, 0, 'p'},
+    {"anykey",  no_argument, 0, 'a'},
   };
 
   int opt;
   int option_index = 0;
-  while ((opt = getopt_long(argc, argv, "hsrxp", long_options, &option_index)) != -1)
+  while ((opt = getopt_long(argc, argv, "hsrxpa", long_options, &option_index)) != -1)
   {
     switch (opt)
     {
@@ -370,6 +380,9 @@ int main(int argc, char *argv[])
         break;
       case 'p':
         pflag = 1;
+        break;
+      case 'a':
+        aflag = 1;
         break;
       case '?':
         print_short_help(stderr);
