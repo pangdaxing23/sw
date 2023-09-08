@@ -10,6 +10,7 @@
 #include "sw.h"
 
 #define NSEC_TO_SLEEP 10000000
+#define ONE_BILLION_NSEC 1000000000
 #define HIDE_CURSOR printf("\e[?25l")
 #define SHOW_CURSOR printf("\e[?25h")
 
@@ -32,6 +33,7 @@ char endchar = '\r';
 int rflag = 0;
 int sflag = 0;
 int xflag = 0;
+int pflag = 0;
 
 static char *program_name;
 
@@ -69,7 +71,8 @@ void print_time(FILE *fd)
   fflush(stdout);
 }
 
-void resume_timer() {
+void pause_timer() {
+  paused = 1;
   clock_gettime(CLOCK_MONOTONIC, &pausedtime);
   if (xflag) {
     cleanup();
@@ -77,18 +80,19 @@ void resume_timer() {
   }
 }
 
-void pause_timer() {
+void resume_timer() {
+  paused = 0;
   clock_gettime(CLOCK_MONOTONIC, &resumedtime);
   starttime.tv_sec += resumedtime.tv_sec - pausedtime.tv_sec;
   starttime.tv_nsec += resumedtime.tv_nsec - pausedtime.tv_nsec;
   if (starttime.tv_nsec < 0)
   {
-    starttime.tv_nsec += 1000000000;
+    starttime.tv_nsec += ONE_BILLION_NSEC;
     --starttime.tv_sec;
   }
-  else if (starttime.tv_nsec >= 1000000000)
+  else if (starttime.tv_nsec >= ONE_BILLION_NSEC)
   {
-    starttime.tv_nsec -= 1000000000;
+    starttime.tv_nsec -= ONE_BILLION_NSEC;
     ++starttime.tv_sec;
   }
 }
@@ -182,8 +186,17 @@ void restore_time()
   starttime.tv_nsec -= restored_time.tv_nsec;
   if (starttime.tv_nsec < 0)
   {
-    starttime.tv_nsec += 1000000000;
+    starttime.tv_nsec += ONE_BILLION_NSEC;
     --starttime.tv_sec;
+  }
+
+  clock_gettime(CLOCK_MONOTONIC, &currenttime);
+  elapsedtime.tv_sec = currenttime.tv_sec - starttime.tv_sec;
+  elapsedtime.tv_nsec = currenttime.tv_nsec - starttime.tv_nsec;
+  if (elapsedtime.tv_nsec < 0)
+  {
+    elapsedtime.tv_nsec += ONE_BILLION_NSEC;
+    --elapsedtime.tv_sec;
   }
   free(buf);
 }
@@ -222,31 +235,38 @@ void sigint_handler(int sig)
 
 void get_input()
 {
-  char c;
-  read(STDIN_FILENO, &c, 1);
-  switch (c)
-  {
-    case ' ':
-      // pause or resume stopwatch
-      paused = !paused;
-      if (paused)
-        resume_timer();
-      else
-        pause_timer();
-      break;
-    case 's':
-      save_time();
-      break;
-    case 'r':
-      reset_time();
-      break;
-    case 'q':
-      // quit
-      cleanup();
-      exit(0);
-      break;
-    default:
-      break;
+  fd_set read_fds;
+  struct timeval timeout;
+  FD_ZERO(&read_fds);
+  FD_SET(STDIN_FILENO, &read_fds);
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 1000; // Check every 1ms
+  if (select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout) == 1) {
+    char c;
+    read(STDIN_FILENO, &c, 1);
+    switch (c)
+    {
+      case ' ':
+        // pause or resume stopwatch
+        if (paused)
+          resume_timer();
+        else
+          pause_timer();
+        break;
+      case 's':
+        save_time();
+        break;
+      case 'r':
+        reset_time();
+        break;
+      case 'q':
+        // quit
+        cleanup();
+        exit(0);
+        break;
+      default:
+        break;
+    }
   }
 }
 
@@ -258,11 +278,12 @@ void print_help(FILE *out)
   fprintf(out, "  -s, --save    Save the final time to ~/.sw/savedtime\n");
   fprintf(out, "  -r, --restore Restore time from ~/.sw/savedtime\n");
   fprintf(out, "  -x, --exit    Exit instead of pausing.\n");
+  fprintf(out, "  -p, --paused  Start in paused state.\n");
 }
 
 void print_short_help(FILE *out)
 {
-  fprintf(out, "Usage: %s [-hsrq]\n", program_name);
+  fprintf(out, "Usage: %s [-hsrxp]\n", program_name);
 }
 
 int main(int argc, char *argv[])
@@ -277,11 +298,12 @@ int main(int argc, char *argv[])
     {"save",    no_argument, 0, 's'},
     {"restore", no_argument, 0, 'r'},
     {"exit",    no_argument, 0, 'x'},
+    {"paused",  no_argument, 0, 'p'},
   };
 
   int opt;
   int option_index = 0;
-  while ((opt = getopt_long(argc, argv, "hsrx", long_options, &option_index)) != -1)
+  while ((opt = getopt_long(argc, argv, "hsrxp", long_options, &option_index)) != -1)
   {
     switch (opt)
     {
@@ -297,6 +319,9 @@ int main(int argc, char *argv[])
       case 'x':
         xflag = 1;
         break;
+      case 'p':
+        pflag = 1;
+        break;
       case '?':
         print_short_help(stderr);
         break;
@@ -308,14 +333,21 @@ int main(int argc, char *argv[])
   set_raw_mode(1);
   HIDE_CURSOR;
 
-  fd_set read_fds;
-  struct timeval timeout;
-
   clock_gettime(CLOCK_MONOTONIC, &starttime);
   if (rflag)
   {
     restore_time();
   }
+  if (pflag)
+  {
+    pause_timer();
+    print_time(stdout);
+    while (paused) {
+      get_input();
+      nanosleep(&sleepduration, NULL);
+    }
+  }
+
   while (1)
   {
     if (!paused)
@@ -325,20 +357,12 @@ int main(int argc, char *argv[])
       elapsedtime.tv_nsec = currenttime.tv_nsec - starttime.tv_nsec;
       if (elapsedtime.tv_nsec < 0)
       {
-        elapsedtime.tv_nsec += 1000000000;
+        elapsedtime.tv_nsec += ONE_BILLION_NSEC;
         --elapsedtime.tv_sec;
       }
       print_time(stdout);
     }
-
-    FD_ZERO(&read_fds);
-    FD_SET(STDIN_FILENO, &read_fds);
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 1000; // Check every 1ms
-    if (select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout) == 1) {
-      get_input();
-    }
-
+    get_input();
     nanosleep(&sleepduration, NULL);
   }
   return 0;
