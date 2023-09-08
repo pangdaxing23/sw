@@ -272,13 +272,19 @@ void get_input()
 
 void print_help(FILE *out)
 {
-  fprintf(out, "Usage: %s [-hsr]\n", program_name);
+  fprintf(out, "Usage: %s [-hsrxp]\n", program_name);
   fprintf(out, "\nOptions:\n");
   fprintf(out, "  -h, --help    Show this help message and exit.\n");
   fprintf(out, "  -s, --save    Save the final time to ~/.sw/savedtime\n");
   fprintf(out, "  -r, --restore Restore time from ~/.sw/savedtime\n");
   fprintf(out, "  -x, --exit    Exit instead of pausing.\n");
   fprintf(out, "  -p, --paused  Start in paused state.\n");
+
+  fprintf(out, "\nControls:\n");
+  fprintf(out, "  Space         Pause or resume the stopwatch.\n");
+  fprintf(out, "  s             Save the current time to ~/.sw/savedtime.\n");
+  fprintf(out, "  r             Reset the stopwatch to zero.\n");
+  fprintf(out, "  q             Quit.\n");
 }
 
 void print_short_help(FILE *out)
