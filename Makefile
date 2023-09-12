@@ -20,7 +20,7 @@ ifeq ($(PREFIX),)
 	PREFIX := /usr/local
 endif
 
-$(BIN)/$(TARGET): $(SRC)/$(TARGET).c $(SRC)/$(TARGET).h
+$(BIN)/$(TARGET): $(SRC)/$(TARGET).c
 	mkdir -p $(BIN)
 	$(CC) $(CFLAGS) $^ -o $@
 
