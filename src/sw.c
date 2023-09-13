@@ -282,39 +282,44 @@ void get_input()
     char c;
     read(STDIN_FILENO, &c, 1);
     if (aflag) {
-      // exit upon any keypress
-      cleanup();
-      exit(0);
-    } else {
-      switch (c)
-      {
-        case ' ':
-          // pause or resume stopwatch
-          if (paused)
-            resume_timer();
-          else
-            pause_timer();
-          break;
-        case 's':
-          save_time();
-          break;
-        case 'r':
-          reset_time();
-          break;
-        case '+':
-          add_one_second();
-          break;
-        case '-':
-          subtract_one_second();
-          break;
-        case 'q':
-          // quit
-          cleanup();
-          exit(0);
-          break;
-        default:
-          break;
+      if (pflag) {
+        if (c == ' ') {
+          pflag = !pflag;
+        }
+      } else {
+        // exit upon any keypress
+        cleanup();
+        exit(0);
       }
+    }
+    switch (c)
+    {
+      case ' ':
+        // pause or resume stopwatch
+        if (paused)
+          resume_timer();
+        else
+          pause_timer();
+        break;
+      case 's':
+        save_time();
+        break;
+      case 'r':
+        reset_time();
+        break;
+      case '+':
+        add_one_second();
+        break;
+      case '-':
+        subtract_one_second();
+        break;
+      case 'q':
+        // quit
+        cleanup();
+        exit(0);
+        break;
+      default:
+        break;
     }
   }
 }
@@ -333,7 +338,7 @@ void print_help(FILE *out)
   fprintf(out, "  -r, --restore Restore time from ~/.sw/savedtime\n");
   fprintf(out, "  -x, --exit    Exit instead of pausing.\n");
   fprintf(out, "  -p, --paused  Start in paused state.\n");
-  fprintf(out, "  -a, --anykey  Exit upon any keypress.\n");
+  fprintf(out, "  -a, --anykey  Exit upon any keypress. With -p, will exit upon any keypress after unpausing.\n");
 
   fprintf(out, "\nControls:\n");
   fprintf(out, "  Space         Pause or resume the stopwatch.\n");
