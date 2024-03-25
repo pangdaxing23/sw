@@ -355,6 +355,9 @@ int main(int argc, char *argv[])
   signal(SIGTERM, sigint_handler);
 
   program_name = argv[0];
+  if (program_name == NULL) {
+    return EXIT_FAILURE;
+  }
 
   static struct option long_options[] = {
     {"help",    no_argument, 0, 'h'},
