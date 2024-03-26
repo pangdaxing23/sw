@@ -332,21 +332,20 @@ void print_short_help(FILE *out)
 void print_help(FILE *out)
 {
   print_short_help(stdout);
-  fprintf(out, "\nOptions:\n");
-  fprintf(out, "  -h, --help    Show this help message and exit.\n");
-  fprintf(out, "  -s, --save    Save the final time to ~/.sw/savedtime\n");
-  fprintf(out, "  -r, --restore Restore time from ~/.sw/savedtime\n");
-  fprintf(out, "  -x, --exit    Exit instead of pausing.\n");
-  fprintf(out, "  -p, --paused  Start in paused state.\n");
-  fprintf(out, "  -a, --anykey  Exit upon any keypress. With -p, will exit upon any keypress after unpausing.\n");
-
-  fprintf(out, "\nControls:\n");
-  fprintf(out, "  Space         Pause or resume the stopwatch.\n");
-  fprintf(out, "  s             Save the current time to ~/.sw/savedtime.\n");
-  fprintf(out, "  +             Add one second to the time.\n");
-  fprintf(out, "  -             Subtract one second from the time.\n");
-  fprintf(out, "  r             Reset the stopwatch to zero.\n");
-  fprintf(out, "  q             Quit.\n");
+  fprintf(out, "\nOptions:\n"
+             "  -h, --help    Show this help message and exit.\n"
+             "  -s, --save    Save the final time to ~/.sw/savedtime\n"
+             "  -r, --restore Restore time from ~/.sw/savedtime\n"
+             "  -x, --exit    Exit instead of pausing.\n"
+             "  -p, --paused  Start in paused state.\n"
+             "  -a, --anykey  Exit upon any keypress. With -p, will exit upon any keypress after unpausing.\n"
+             "\nControls:\n"
+             "  Space         Pause or resume the stopwatch.\n"
+             "  s             Save the current time to ~/.sw/savedtime.\n"
+             "  +             Add one second to the time.\n"
+             "  -             Subtract one second from the time.\n"
+             "  r             Reset the stopwatch to zero.\n"
+             "  q             Quit.\n");
 }
 
 int main(int argc, char *argv[])
