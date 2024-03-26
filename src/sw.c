@@ -393,7 +393,6 @@ int main(int argc, char *argv[])
         break;
       case '?':
         print_short_help(stderr);
-        break;
       default:
         exit(1);
     }
