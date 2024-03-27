@@ -79,7 +79,7 @@ void pause_timer() {
   clock_gettime(CLOCK_MONOTONIC, &currenttime);
   if (xflag) {
     cleanup();
-    exit(0);
+    exit(EXIT_SUCCESS);
   }
 }
 
@@ -138,7 +138,7 @@ void save_time()
   if (savedtimef == NULL)
   {
     perror("Could not save to file");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   print_time(savedtimef);
 }
@@ -289,7 +289,7 @@ void get_input()
       } else {
         // exit upon any keypress
         cleanup();
-        exit(0);
+        exit(EXIT_SUCCESS);
       }
     }
     switch (c)
@@ -316,7 +316,7 @@ void get_input()
       case 'q':
         // quit
         cleanup();
-        exit(0);
+        exit(EXIT_SUCCESS);
         break;
       default:
         break;
@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
     {
       case 'h':
         print_help(stdout);
-        exit(0);
+        return EXIT_SUCCESS;
       case 's':
         sflag = 1;
         break;
@@ -394,7 +394,7 @@ int main(int argc, char *argv[])
       case '?':
         print_short_help(stderr);
       default:
-        exit(1);
+        return EXIT_FAILURE;
     }
   }
 
