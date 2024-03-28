@@ -74,7 +74,7 @@ void print_time(FILE *fd)
   fflush(stdout);
 }
 
-void pause_timer() {
+void pause_timer(void) {
   paused = 1;
   clock_gettime(CLOCK_MONOTONIC, &currenttime);
   if (xflag) {
@@ -83,7 +83,7 @@ void pause_timer() {
   }
 }
 
-void resume_timer() {
+void resume_timer(void) {
   paused = 0;
   clock_gettime(CLOCK_MONOTONIC, &resumedtime);
   starttime.tv_sec += resumedtime.tv_sec - currenttime.tv_sec;
@@ -100,7 +100,7 @@ void resume_timer() {
   }
 }
 
-void clear_output()
+void clear_output(void)
 {
   printf("\r");
   fflush(stdout);
@@ -132,7 +132,7 @@ FILE *get_saved_time_file(char *mode)
   return savedtimef;
 }
 
-void save_time()
+void save_time(void)
 {
   FILE *savedtimef = get_saved_time_file("w");
   if (savedtimef == NULL)
@@ -143,7 +143,7 @@ void save_time()
   print_time(savedtimef);
 }
 
-void restore_time()
+void restore_time(void)
 {
   int hours = 0;
   int minutes = 0;
@@ -205,7 +205,7 @@ void restore_time()
   }
 }
 
-void add_one_second() {
+void add_one_second(void) {
   starttime.tv_sec -= 1;
   if (paused) {
     elapsedtime.tv_sec = currenttime.tv_sec - starttime.tv_sec;
@@ -219,7 +219,7 @@ void add_one_second() {
   }
 }
 
-void subtract_one_second() {
+void subtract_one_second(void) {
   starttime.tv_sec += 1;
   if (starttime.tv_sec > currenttime.tv_sec ||
       (starttime.tv_sec == currenttime.tv_sec && starttime.tv_nsec > currenttime.tv_nsec)) {
@@ -238,7 +238,7 @@ void subtract_one_second() {
   }
 }
 
-void reset_time()
+void reset_time(void)
 {
   clock_gettime(CLOCK_MONOTONIC, &starttime);
   if (paused)
@@ -250,7 +250,7 @@ void reset_time()
   }
 }
 
-void cleanup()
+void cleanup(void)
 {
   paused = 1;
   endchar = '\n';
@@ -270,7 +270,7 @@ void sigint_handler(int sig)
   exit(sig);
 }
 
-void get_input()
+void get_input(void)
 {
   fd_set read_fds;
   struct timeval timeout;
