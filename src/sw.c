@@ -53,24 +53,24 @@ void set_raw_mode(int enable)
   tcsetattr(STDIN_FILENO, TCSANOW, &term_settings);
 }
 
-void print_time(FILE *fd)
+void print_time(FILE *fp)
 {
   if (elapsedtime.tv_sec < 3600)
   {
-    fprintf(fd, UNDER_HOUR_TEMPLATE,
+    fprintf(fp, UNDER_HOUR_TEMPLATE,
         (int)(elapsedtime.tv_sec / 60),
         (int)(elapsedtime.tv_sec % 60),
         (int)(elapsedtime.tv_nsec / 10000000));
   }
   else
   {
-    fprintf(fd, OVER_HOUR_TEMPLATE,
+    fprintf(fp, OVER_HOUR_TEMPLATE,
         (int)(elapsedtime.tv_sec / 3600),
         (int)(elapsedtime.tv_sec % 3600 / 60),
         (int)(elapsedtime.tv_sec % 60),
         (int)(elapsedtime.tv_nsec / 10000000));
   }
-  fprintf(fd, "%c", endchar);
+  fprintf(fp, "%c", endchar);
   fflush(stdout);
 }
 
